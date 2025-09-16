@@ -1,0 +1,24 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="CouchbaseLiteQueryTester.MainPage">
+
+    <ScrollView>
+        <Grid RowDefinitions="*,2*">
+            <Grid Grid.Row="0" ColumnDefinitions="*, 150">
+               
+                <Editor x:Name="QueryEditor" Grid.Column="0" Placeholder="Enter SQL++ query here"/>
+
+                <Button x:Name="OpenButton" Grid.Column="1" Text="Open DB" WidthRequest="150" HeightRequest="50" VerticalOptions="Start" HorizontalOptions="End" />
+                <Button x:Name="ExecuteButton" Grid.Column="1" Text="Execute" WidthRequest="150" HeightRequest="50" VerticalOptions="End" HorizontalOptions="End" />
+            </Grid>
+
+            <Grid Grid.Row="1" ColumnDefinitions="*, 150">
+                <Editor x:Name="ResultView" Grid.Column="0" IsReadOnly="True" />
+            
+                <Button x:Name="ClearButton" Grid.Column="1" Text="Clear" WidthRequest="150" HeightRequest="50" VerticalOptions="End" HorizontalOptions="End" />
+            </Grid>
+        </Grid>
+    </ScrollView>
+
+</ContentPage>
