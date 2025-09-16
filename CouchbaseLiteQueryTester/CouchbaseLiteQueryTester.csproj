@@ -58,10 +58,12 @@
 		<MauiAsset Include="Resources\Raw\**" LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
 	</ItemGroup>
 
-	<ItemGroup>
-		<PackageReference Include="Microsoft.Maui.Controls" Version="$(MauiVersion)" />
-		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="9.0.5" />
-	</ItemGroup>
+        <ItemGroup>
+                <PackageReference Include="Microsoft.Maui.Controls" Version="$(MauiVersion)" />
+                <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="9.0.5" />
+                <PackageReference Include="Couchbase.Lite" Version="3.1.0" />
+                <PackageReference Include="Couchbase.Lite.Support.NetDesktop" Version="3.1.0" />
+        </ItemGroup>
 
 	<ItemGroup>
 	  <Folder Include="Resources\Images\" />

@@ -1,4 +1,8 @@
-﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging;
+
+#if WINDOWS || MACCATALYST
+using Couchbase.Lite.Support;
+#endif
 
 namespace CouchbaseLiteQueryTester
 {
@@ -7,6 +11,11 @@ namespace CouchbaseLiteQueryTester
         public static MauiApp CreateMauiApp()
         {
             var builder = MauiApp.CreateBuilder();
+
+#if WINDOWS || MACCATALYST
+            NetDesktop.Activate();
+#endif
+
             builder
                 .UseMauiApp<App>()
                 .ConfigureFonts(fonts =>
@@ -16,7 +25,7 @@ namespace CouchbaseLiteQueryTester
                 });
 
 #if DEBUG
-    		builder.Logging.AddDebug();
+            builder.Logging.AddDebug();
 #endif
 
             return builder.Build();
