@@ -59,7 +59,9 @@
 	</ItemGroup>
 
         <ItemGroup>
-                <PackageReference Include="Microsoft.Maui.Controls" Version="$(MauiVersion)" />
+	        <PackageReference Include="CommunityToolkit.Maui" Version="12.2.0" />
+			<PackageReference Include="CommunityToolkit.Maui.Core" Version="12.2.0" />
+                <PackageReference Include="Microsoft.Maui.Controls" Version="9.0.100" />
                 <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="9.0.5" />
                 <PackageReference Include="Couchbase.Lite" Version="3.1.0" />
                 <PackageReference Include="Couchbase.Lite.Support.NetDesktop" Version="3.1.0" />

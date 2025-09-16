@@ -5,13 +5,9 @@ using System.IO;
 using System.Linq;
 using System.Text.Encodings.Web;
 using System.Text.Json;
+using CommunityToolkit.Maui.Storage;
 using Couchbase.Lite;
 using CouchbaseLiteQueryTester.Utilities;
-using Microsoft.Maui.ApplicationModel;
-using Microsoft.Maui.Controls;
-using Microsoft.Maui.Graphics;
-using Microsoft.Maui.Storage;
-using System.Threading.Tasks;
 
 namespace CouchbaseLiteQueryTester
 {
@@ -52,17 +48,20 @@ namespace CouchbaseLiteQueryTester
 
         private async Task<string?> PickDatabaseFolderAsync()
         {
-#if WINDOWS || MACCATALYST
-            var result = await FolderPicker.Default.PickAsync(new FolderPickerOptions
-            {
-                Title = "Select a Couchbase Lite .cblite2 database"
-            });
+            var result = await FolderPicker.Default.PickAsync(new CancellationToken());
 
+//#if WINDOWS || MACCATALYST
+            /*
+                        var result = await FolderPicker.Default.PickAsync(new FolderPickerOptions
+                        {
+                            Title = "Select a Couchbase Lite .cblite2 database"
+                        });
+            */
             return result?.Folder?.Path;
-#else
-            await Task.CompletedTask;
-            throw new PlatformNotSupportedException("Selecting a database is currently supported on Windows and Mac only.");
-#endif
+//#else
+//            await Task.CompletedTask;
+//            throw new PlatformNotSupportedException("Selecting a database is currently supported on Windows and Mac only.");
+//#endif
         }
 
         private void OpenDatabase(string folderPath)
@@ -116,7 +115,7 @@ namespace CouchbaseLiteQueryTester
             try
             {
                 using var query = _database.CreateQuery(sql);
-                using var results = query.Execute();
+                var results = query.Execute();
 
                 var rows = new List<object?>();
                 foreach (var row in results)

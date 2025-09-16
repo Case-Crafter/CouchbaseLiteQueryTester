@@ -34,7 +34,7 @@
                            FontSize="12"
                            TextColor="{AppThemeBinding Light=#202020, Dark=#F5F5F5}"
                            LineBreakMode="WordWrap"
-                           MaxWidthRequest="160" />
+                           WidthRequest="160" />
                 </VerticalStackLayout>
             </Grid>
 

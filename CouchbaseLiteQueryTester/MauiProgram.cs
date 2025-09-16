@@ -1,3 +1,6 @@
+using CommunityToolkit.Maui.Core;
+using Couchbase.Lite.Support;
+using CouchbaseLiteQueryTester;
 using Microsoft.Extensions.Logging;
 
 #if WINDOWS || MACCATALYST
@@ -12,18 +15,19 @@ namespace CouchbaseLiteQueryTester
         {
             var builder = MauiApp.CreateBuilder();
 
-#if WINDOWS || MACCATALYST
-            NetDesktop.Activate();
-#endif
+//#if WINDOWS || MACCATALYST
+            NetDesktop.LoadLiteCore();
+//#endif
 
             builder
                 .UseMauiApp<App>()
+                .UseMauiApp<App>().UseMauiCommunityToolkitCore()
                 .ConfigureFonts(fonts =>
                 {
                     fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
                     fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
                 });
-
+            
 #if DEBUG
             builder.Logging.AddDebug();
 #endif
