@@ -3,11 +3,16 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using CommunityToolkit.Maui.Storage;
 using Couchbase.Lite;
+using CouchbaseLiteQueryTester.Controls;
 using CouchbaseLiteQueryTester.Utilities;
+using Microsoft.Maui;
+using Microsoft.Maui.Graphics;
+using Microsoft.Maui.Storage;
 
 namespace CouchbaseLiteQueryTester
 {
@@ -18,6 +23,8 @@ namespace CouchbaseLiteQueryTester
             Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
             WriteIndented = true
         };
+
+        private const string LastDatabaseFolderPreferenceKey = "LastDatabaseFolder";
 
         private Database? _database;
 
@@ -48,20 +55,17 @@ namespace CouchbaseLiteQueryTester
 
         private async Task<string?> PickDatabaseFolderAsync()
         {
-            var result = await FolderPicker.Default.PickAsync(new CancellationToken());
+            try
+            {
+                var options = CreateFolderPickerOptions(GetLastDatabaseFolder());
+                var result = await FolderPicker.Default.PickAsync(options);
 
-//#if WINDOWS || MACCATALYST
-            /*
-                        var result = await FolderPicker.Default.PickAsync(new FolderPickerOptions
-                        {
-                            Title = "Select a Couchbase Lite .cblite2 database"
-                        });
-            */
-            return result?.Folder?.Path;
-//#else
-//            await Task.CompletedTask;
-//            throw new PlatformNotSupportedException("Selecting a database is currently supported on Windows and Mac only.");
-//#endif
+                return result?.Folder?.Path;
+            }
+            catch (OperationCanceledException)
+            {
+                return null;
+            }
         }
 
         private void OpenDatabase(string folderPath)
@@ -93,6 +97,8 @@ namespace CouchbaseLiteQueryTester
             DatabaseStatusLabel.Text = $"Connected: {dbName}{Environment.NewLine}{directoryInfo.FullName}";
             ResultSummaryLabel.Text = "Database opened. Ready for queries.";
             ClearResultsContent();
+
+            PersistLastDatabaseFolder(directoryInfo.Parent?.FullName ?? directoryInfo.FullName);
         }
 
         private void OnExecuteQueryClicked(object sender, EventArgs e)
@@ -134,9 +140,9 @@ namespace CouchbaseLiteQueryTester
 
         private void DisplayJson(string json, int rowCount)
         {
-            var formatted = TextHighlighter.CreateJsonFormattedString(json);
-
-            ResultLabel.FormattedText = formatted;
+            ResultViewer.PlainTextColor = GetDefaultResultPlainTextColor();
+            ResultViewer.HighlightingLanguage = SyntaxHighlightingLanguage.Json;
+            ResultViewer.Text = json;
             ResultSummaryLabel.Text = rowCount == 1 ? "1 row returned" : $"{rowCount} rows returned";
 
             MainThread.BeginInvokeOnMainThread(async () =>
@@ -154,21 +160,111 @@ namespace CouchbaseLiteQueryTester
 
         private void ShowError(string message)
         {
-            var formatted = new FormattedString();
-            formatted.Spans.Add(new Span
-            {
-                Text = message,
-                TextColor = Colors.Red
-            });
-
-            ResultLabel.FormattedText = formatted;
+            ResultViewer.HighlightingLanguage = SyntaxHighlightingLanguage.None;
+            ResultViewer.PlainTextColor = Colors.Red;
+            ResultViewer.Text = message;
             ResultSummaryLabel.Text = "An error occurred.";
         }
 
         private void ClearResultsContent()
         {
-            ResultLabel.FormattedText = new FormattedString();
-            ResultLabel.Text = string.Empty;
+            ResultViewer.PlainTextColor = GetDefaultResultPlainTextColor();
+            ResultViewer.HighlightingLanguage = SyntaxHighlightingLanguage.Json;
+            ResultViewer.Text = string.Empty;
+        }
+
+        private static FolderPickerOptions CreateFolderPickerOptions(string? initialFolder)
+        {
+            var options = new FolderPickerOptions
+            {
+                Title = "Select a Couchbase Lite .cblite2 database"
+            };
+
+            TryApplyInitialFolder(options, initialFolder);
+            return options;
+        }
+
+        private static void TryApplyInitialFolder(FolderPickerOptions options, string? initialFolder)
+        {
+            if (string.IsNullOrWhiteSpace(initialFolder) || !Directory.Exists(initialFolder))
+            {
+                return;
+            }
+
+            try
+            {
+                var optionType = options.GetType();
+                var property = optionType.GetProperty("InitialFolder", BindingFlags.Public | BindingFlags.Instance)
+                               ?? optionType.GetProperty("InitialDirectory", BindingFlags.Public | BindingFlags.Instance)
+                               ?? optionType.GetProperty("InitialLocation", BindingFlags.Public | BindingFlags.Instance)
+                               ?? optionType.GetProperty("StartLocation", BindingFlags.Public | BindingFlags.Instance);
+
+                if (property is not null)
+                {
+                    if (property.PropertyType == typeof(string))
+                    {
+                        property.SetValue(options, initialFolder);
+                    }
+                    else if (property.PropertyType == typeof(DirectoryInfo))
+                    {
+                        property.SetValue(options, new DirectoryInfo(initialFolder));
+                    }
+                    else if (property.PropertyType.FullName == typeof(Uri).FullName)
+                    {
+                        var separator = Path.DirectorySeparatorChar.ToString();
+                        var path = initialFolder.EndsWith(separator, StringComparison.Ordinal)
+                            ? initialFolder
+                            : initialFolder + separator;
+
+                        if (Uri.TryCreate(path, UriKind.Absolute, out var uri))
+                        {
+                            property.SetValue(options, uri);
+                        }
+                    }
+                }
+
+                var settingsProperty = optionType.GetProperty("SettingsIdentifier", BindingFlags.Public | BindingFlags.Instance);
+                if (settingsProperty is not null && settingsProperty.PropertyType == typeof(string))
+                {
+                    settingsProperty.SetValue(options, $"CouchbaseLiteQueryTester:{LastDatabaseFolderPreferenceKey}");
+                }
+            }
+            catch
+            {
+                // Ignore failures to set optional properties; the picker will fall back to its default behavior.
+            }
+        }
+
+        private static string? GetLastDatabaseFolder()
+        {
+            var stored = Preferences.Get(LastDatabaseFolderPreferenceKey, string.Empty);
+            if (string.IsNullOrWhiteSpace(stored) || !Directory.Exists(stored))
+            {
+                if (!string.IsNullOrWhiteSpace(stored))
+                {
+                    Preferences.Remove(LastDatabaseFolderPreferenceKey);
+                }
+
+                return null;
+            }
+
+            return stored;
+        }
+
+        private static void PersistLastDatabaseFolder(string? folderPath)
+        {
+            if (string.IsNullOrWhiteSpace(folderPath) || !Directory.Exists(folderPath))
+            {
+                return;
+            }
+
+            Preferences.Set(LastDatabaseFolderPreferenceKey, folderPath);
+        }
+
+        private Color GetDefaultResultPlainTextColor()
+        {
+            var theme = Application.Current?.RequestedTheme ?? AppTheme.Light;
+            return theme == AppTheme.Dark ? Colors.White : Colors.Black;
         }
 
         protected override void OnDisappearing()

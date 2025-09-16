@@ -7,7 +7,7 @@
     Title="CouchbaseLiteQueryTester">
 
     <ShellContent
-        Title="Home"
+        Title="Couchbase Lite Query Tester"
         ContentTemplate="{DataTemplate local:MainPage}"
         Route="MainPage" />
 

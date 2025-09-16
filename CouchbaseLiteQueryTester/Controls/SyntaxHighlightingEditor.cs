@@ -6,8 +6,17 @@ using Microsoft.Maui.Graphics;
 
 namespace CouchbaseLiteQueryTester.Controls
 {
+    public enum SyntaxHighlightingLanguage
+    {
+        Sql,
+        Json,
+        None
+    }
+
     public class SyntaxHighlightingEditor : Grid
     {
+        private static readonly Thickness DefaultContentPadding = new(12, 8, 12, 8);
+
         private readonly Editor _editor;
         private readonly Label _overlayLabel;
         private bool _suppressTextCallback;
@@ -20,9 +29,12 @@ namespace CouchbaseLiteQueryTester.Controls
                 LineBreakMode = LineBreakMode.CharacterWrap,
                 HorizontalTextAlignment = TextAlignment.Start,
                 VerticalTextAlignment = TextAlignment.Start,
+                HorizontalOptions = LayoutOptions.Fill,
+                VerticalOptions = LayoutOptions.Fill,
                 TextColor = Colors.Black,
                 BackgroundColor = Colors.Transparent,
-                InputTransparent = true
+                InputTransparent = true,
+                Margin = DefaultContentPadding
             };
 
             _editor = new Editor
@@ -32,7 +44,10 @@ namespace CouchbaseLiteQueryTester.Controls
                 PlaceholderColor = Color.FromArgb("#7F7F7F"),
                 HorizontalOptions = LayoutOptions.Fill,
                 VerticalOptions = LayoutOptions.Fill,
-                AutoSize = EditorAutoSizeOption.TextChanges
+                AutoSize = EditorAutoSizeOption.TextChanges,
+                Padding = DefaultContentPadding,
+                IsSpellCheckEnabled = false,
+                IsTextPredictionEnabled = false
             };
 
             _editor.TextChanged += HandleEditorTextChanged;
@@ -42,6 +57,8 @@ namespace CouchbaseLiteQueryTester.Controls
 
             SetDefaultFontValues();
             ApplyHighlighting(string.Empty);
+
+            SetValue(PlainTextColorProperty, GetDefaultPlainTextColor());
 
             _application = Application.Current;
             if (_application is not null)
@@ -53,6 +70,19 @@ namespace CouchbaseLiteQueryTester.Controls
         public event EventHandler<TextChangedEventArgs>? TextChanged;
 
         public Editor InnerEditor => _editor;
+
+        public static readonly BindableProperty ContentPaddingProperty = BindableProperty.Create(
+            nameof(ContentPadding),
+            typeof(Thickness),
+            typeof(SyntaxHighlightingEditor),
+            DefaultContentPadding,
+            propertyChanged: OnContentPaddingChanged);
+
+        public Thickness ContentPadding
+        {
+            get => (Thickness)GetValue(ContentPaddingProperty);
+            set => SetValue(ContentPaddingProperty, value);
+        }
 
         public static readonly BindableProperty TextProperty = BindableProperty.Create(
             nameof(Text),
@@ -144,6 +174,58 @@ namespace CouchbaseLiteQueryTester.Controls
             control._overlayLabel.FontFamily = family;
         }
 
+        public static readonly BindableProperty AutoSizeProperty = BindableProperty.Create(
+            nameof(AutoSize),
+            typeof(EditorAutoSizeOption),
+            typeof(SyntaxHighlightingEditor),
+            EditorAutoSizeOption.TextChanges,
+            propertyChanged: OnAutoSizeChanged);
+
+        public EditorAutoSizeOption AutoSize
+        {
+            get => (EditorAutoSizeOption)GetValue(AutoSizeProperty);
+            set => SetValue(AutoSizeProperty, value);
+        }
+
+        public static readonly BindableProperty IsReadOnlyProperty = BindableProperty.Create(
+            nameof(IsReadOnly),
+            typeof(bool),
+            typeof(SyntaxHighlightingEditor),
+            false,
+            propertyChanged: OnIsReadOnlyChanged);
+
+        public bool IsReadOnly
+        {
+            get => (bool)GetValue(IsReadOnlyProperty);
+            set => SetValue(IsReadOnlyProperty, value);
+        }
+
+        public static readonly BindableProperty PlainTextColorProperty = BindableProperty.Create(
+            nameof(PlainTextColor),
+            typeof(Color),
+            typeof(SyntaxHighlightingEditor),
+            Colors.Black,
+            propertyChanged: OnPlainTextColorChanged);
+
+        public Color PlainTextColor
+        {
+            get => (Color)GetValue(PlainTextColorProperty);
+            set => SetValue(PlainTextColorProperty, value);
+        }
+
+        public static readonly BindableProperty HighlightingLanguageProperty = BindableProperty.Create(
+            nameof(HighlightingLanguage),
+            typeof(SyntaxHighlightingLanguage),
+            typeof(SyntaxHighlightingEditor),
+            SyntaxHighlightingLanguage.Sql,
+            propertyChanged: OnHighlightingLanguageChanged);
+
+        public SyntaxHighlightingLanguage HighlightingLanguage
+        {
+            get => (SyntaxHighlightingLanguage)GetValue(HighlightingLanguageProperty);
+            set => SetValue(HighlightingLanguageProperty, value);
+        }
+
         public new bool Focus()
         {
             return _editor.Focus();
@@ -164,6 +246,16 @@ namespace CouchbaseLiteQueryTester.Controls
             base.OnHandlerChanging(args);
         }
 
+        private static void OnContentPaddingChanged(BindableObject bindable, object oldValue, object newValue)
+        {
+            var control = (SyntaxHighlightingEditor)bindable;
+            if (newValue is Thickness padding)
+            {
+                control._editor.Padding = padding;
+                control._overlayLabel.Margin = padding;
+            }
+        }
+
         private void HandleEditorTextChanged(object? sender, TextChangedEventArgs e)
         {
             if (_suppressTextCallback)
@@ -178,13 +270,22 @@ namespace CouchbaseLiteQueryTester.Controls
 
         private void ApplyHighlighting(string? text)
         {
-            var formatted = TextHighlighter.CreateSqlFormattedString(text);
+            FormattedString formatted = HighlightingLanguage switch
+            {
+                SyntaxHighlightingLanguage.Json => TextHighlighter.CreateJsonFormattedString(text),
+                SyntaxHighlightingLanguage.None => CreatePlainFormattedString(text),
+                _ => TextHighlighter.CreateSqlFormattedString(text)
+            };
             _overlayLabel.FormattedText = formatted;
         }
 
         private void HandleRequestedThemeChanged(object? sender, AppThemeChangedEventArgs e)
         {
             ApplyHighlighting(Text);
+            if (HighlightingLanguage == SyntaxHighlightingLanguage.None)
+            {
+                SetValue(PlainTextColorProperty, GetDefaultPlainTextColor());
+            }
         }
 
         private void SetDefaultFontValues()
@@ -192,6 +293,50 @@ namespace CouchbaseLiteQueryTester.Controls
             var defaultSize = Device.GetNamedSize(NamedSize.Medium, typeof(Editor));
             _editor.FontSize = defaultSize;
             _overlayLabel.FontSize = defaultSize;
+        }
+
+        private static void OnAutoSizeChanged(BindableObject bindable, object oldValue, object newValue)
+        {
+            var control = (SyntaxHighlightingEditor)bindable;
+            control._editor.AutoSize = (EditorAutoSizeOption)newValue;
+        }
+
+        private static void OnIsReadOnlyChanged(BindableObject bindable, object oldValue, object newValue)
+        {
+            var control = (SyntaxHighlightingEditor)bindable;
+            control._editor.IsReadOnly = (bool)newValue;
+        }
+
+        private static void OnPlainTextColorChanged(BindableObject bindable, object oldValue, object newValue)
+        {
+            var control = (SyntaxHighlightingEditor)bindable;
+            if (control.HighlightingLanguage == SyntaxHighlightingLanguage.None)
+            {
+                control.ApplyHighlighting(control.Text);
+            }
+        }
+
+        private static void OnHighlightingLanguageChanged(BindableObject bindable, object oldValue, object newValue)
+        {
+            var control = (SyntaxHighlightingEditor)bindable;
+            control.ApplyHighlighting(control.Text);
+        }
+
+        private FormattedString CreatePlainFormattedString(string? text)
+        {
+            var formatted = new FormattedString();
+            formatted.Spans.Add(new Span
+            {
+                Text = text ?? string.Empty,
+                TextColor = PlainTextColor
+            });
+            return formatted;
+        }
+
+        private Color GetDefaultPlainTextColor()
+        {
+            var theme = _application?.RequestedTheme ?? Application.Current?.RequestedTheme ?? AppTheme.Light;
+            return theme == AppTheme.Dark ? Colors.White : Colors.Black;
         }
     }
 }
