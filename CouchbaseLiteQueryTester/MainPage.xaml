@@ -1,22 +1,71 @@
-﻿<?xml version="1.0" encoding="utf-8" ?>
+<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             x:Class="CouchbaseLiteQueryTester.MainPage">
+             xmlns:controls="clr-namespace:CouchbaseLiteQueryTester.Controls"
+             x:Class="CouchbaseLiteQueryTester.MainPage"
+             Padding="16">
 
     <ScrollView>
-        <Grid RowDefinitions="*,2*">
-            <Grid Grid.Row="0" ColumnDefinitions="*, 150">
-               
-                <Editor x:Name="QueryEditor" Grid.Column="0" Placeholder="Enter SQL++ query here"/>
+        <Grid RowDefinitions="Auto,Auto" RowSpacing="16">
+            <Grid ColumnDefinitions="*,160" ColumnSpacing="16" Grid.Row="0">
+                <Border Grid.Column="0"
+                        StrokeThickness="1"
+                        Stroke="{AppThemeBinding Light=#33000000, Dark=#44FFFFFF}"
+                        BackgroundColor="{AppThemeBinding Light=#FFFFFFFF, Dark=#1E1E1E}"
+                        Padding="0">
+                    <controls:SyntaxHighlightingEditor x:Name="QueryEditor"
+                                                         HeightRequest="220"
+                                                         Placeholder="Enter SQL++ query here"
+                                                         FontFamily="Courier New"
+                                                         FontSize="14" />
+                </Border>
 
-                <Button x:Name="OpenButton" Grid.Column="1" Text="Open DB" WidthRequest="150" HeightRequest="50" VerticalOptions="Start" HorizontalOptions="End" />
-                <Button x:Name="ExecuteButton" Grid.Column="1" Text="Execute" WidthRequest="150" HeightRequest="50" VerticalOptions="End" HorizontalOptions="End" />
+                <VerticalStackLayout Grid.Column="1" Spacing="12">
+                    <Button x:Name="OpenButton"
+                            Text="Open DB"
+                            HeightRequest="44"
+                            Clicked="OnOpenDatabaseClicked" />
+                    <Button x:Name="ExecuteButton"
+                            Text="Execute"
+                            HeightRequest="44"
+                            Clicked="OnExecuteQueryClicked" />
+                    <Label x:Name="DatabaseStatusLabel"
+                           Text="No database selected"
+                           FontSize="12"
+                           TextColor="{AppThemeBinding Light=#202020, Dark=#F5F5F5}"
+                           LineBreakMode="WordWrap"
+                           WidthRequest="160" />
+                </VerticalStackLayout>
             </Grid>
 
-            <Grid Grid.Row="1" ColumnDefinitions="*, 150">
-                <Editor x:Name="ResultView" Grid.Column="0" IsReadOnly="True" />
-            
-                <Button x:Name="ClearButton" Grid.Column="1" Text="Clear" WidthRequest="150" HeightRequest="50" VerticalOptions="End" HorizontalOptions="End" />
+            <Grid ColumnDefinitions="*,160" ColumnSpacing="16" Grid.Row="1">
+                <Border Grid.Column="0"
+                        StrokeThickness="1"
+                        Stroke="{AppThemeBinding Light=#33000000, Dark=#44FFFFFF}"
+                        Padding="8"
+                        BackgroundColor="{AppThemeBinding Light=#FFFFFFFF, Dark=#1E1E1E}">
+                    <ScrollView x:Name="ResultScrollView" Orientation="Both">
+                        <Label x:Name="ResultLabel"
+                               FontFamily="Courier New"
+                               FontSize="14"
+                               LineBreakMode="NoWrap"
+                               HorizontalOptions="Start"
+                               VerticalOptions="Start" />
+                    </ScrollView>
+                </Border>
+
+                <VerticalStackLayout Grid.Column="1" Spacing="12">
+                    <Button x:Name="ClearButton"
+                            Text="Clear"
+                            HeightRequest="44"
+                            Clicked="OnClearResultsClicked" />
+                    <Label x:Name="ResultSummaryLabel"
+                           FontAttributes="Bold"
+                           FontSize="12"
+                           TextColor="{AppThemeBinding Light=#202020, Dark=#F5F5F5}"
+                           LineBreakMode="WordWrap"
+                           Text="Results will appear here" />
+                </VerticalStackLayout>
             </Grid>
         </Grid>
     </ScrollView>
